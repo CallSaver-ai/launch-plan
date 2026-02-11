@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Generated files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Environment files (if any are added later)
+.env
+.env.local
+.env.staging
+.env.production
+
+# Temporary directories
+tmp/
+temp/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
