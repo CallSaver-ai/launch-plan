@@ -1,7 +1,8 @@
-# Plan A: Production Launch Checklist (Solo Founder - Max Privacy & Tech Recovery)
+# Master Plan: Production Launch Complete Reference (Solo Founder - Max Privacy & Tech Recovery)
 
-> **Prerequisites:** Form new generic LLC + file DBA "CallSaver"  
-> **Goal:** Get to production with full privacy protection and technical recovery
+> **Purpose:** Complete historical record and reference document containing ALL tasks (completed + pending)
+> **Current Status:** See active-plan.md for outstanding tasks and daily-plan.md for immediate next steps
+> **LLC Decision:** Prosimian Labs LLC (Wyoming) DBA CallSaver
 
 ---
 
@@ -9,7 +10,7 @@
 
 | # | Task | Description | Status |
 |---|------|-------------|--------|
-| 0.1 | **Transfer Domain (Namecheap)** | Azhar transfers `callsaver.ai` ownership on Namecheap to your account, OR resets Namecheap credentials so you can access it directly. **P0 BLOCKER — cannot update nameservers without domain access** | ✅ Done (Feb 8) |
+| 0.1 | **Transfer Domain (Namecheap)** | Azhar transfers `callsaver.ai` ownership on Namecheap to your account, OR resets Namecheap credentials so you can access it directly. **P0 BLOCKER — cannot update nameservers without domain access** | ✅ Done (Feb 8) - Transfer completed, domain now under your control |
 | 0.2 | **Remove Azhar from Google Workspace** | Log into Google Workspace Admin → Users → remove `azhar@callsaver.ai`. You are an admin so you can do this directly. Do this **after** DKIM export (1.2) | ☐ |
 | 0.3 | **Instruct Azhar: Close Suspended AWS Account** | Azhar's AWS account (`azhar@callsaver.ai`) is suspended. He should: (1) Log into AWS console, (2) Go to Account Settings, (3) If account is suspended for non-payment, contact AWS Support to settle outstanding balance or request account closure, (4) If closure is available: Account → Close Account. Note: suspended accounts are auto-closed by AWS after 90 days of non-payment, but explicit closure is cleaner. Provide him these instructions via email/Slack | ✅ |
 | 0.4 | **Pay Google Workspace Bill** | Google Workspace subscription expires in ~25 days (around March 5, 2026). Ensure payment is current to avoid losing `alex@callsaver.ai` email access | ☐ |
@@ -453,16 +454,16 @@ cd ~/callsaver-docuseal
 | # | Task | Description | Status |
 |---|------|-------------|--------|
 | 2.0 | **Decide LLC Name** | Brainstorm and finalize the Wyoming LLC name before filing. This name appears in: (1) MSA legal entity disclosure (*"CallSaver" is a trade name of [LLC Name], a Wyoming limited liability company*), (2) DocuSeal MSA template, (3) Banking/Mercury account, (4) Stripe legal entity, (5) EIN application, (6) All government filings. **Must decide before 2.1**. **Decision:** Prosimian Labs LLC | ✅ |
-| 2.1 | **Form New Generic LLC** | Create new Wyoming LLC with chosen name (task 2.0) via Northwest | ☐ |
-| 2.2 | **File DBA "CallSaver"** | Register "Doing Business As" CallSaver with the new LLC | ☐ |
-| 2.3 | **Execute Solo Founder OA** | Sign Northwest Registered Agent's solo founder operating agreement template | ☐ |
-| 2.4 | **Get EIN** | Use Santa Cruz for "Physical Location" (private); Wyoming RA for "Mailing" | ☐ |
-| 2.5 | **E-File 83(b) Election** | Log into personal IRS.gov portal; file Form 15620 using new EIN (for solo founder equity) | ☐ |
-| 2.6 | **CA Virtual Office** | Secure suite + Signed Office Lease via Northwest; keep home address off CA public record | ☐ |
-| 2.7 | **WY Certificate of Good Standing** | Download Certificate of Existence from Wyoming SOS ($10–$20) | ☐ |
-| 2.8 | **CA Foreign Qualification** | File Form LLC-5; use CA Virtual Office as "Principal Office in California" | ☐ |
-| 2.9 | **CA Registered Agent** | Finalize Northwest Registered Agent setup for California | ☐ |
-| 2.10 | **Compile Startup Expense Receipts** | Collect your payment receipts for business formation, software costs, and laptop purchases (up to $5,000 IRS startup deduction) | ☐ |
+| 2.1 | **Form Prosimian Labs LLC (Wyoming)** | ✅ COMPLETED Feb 10, 2026. Articles of Organization filed with Northwest Registered Agent. Operating Agreement signed via DocuSeal. EIN obtained. Business documents stored in ~/callsaver-documents. | ✅ |
+| 2.2 | **File DBA "CallSaver" (Santa Cruz County)** | **WAITING FOR CA LLC-12.** Will file after CA foreign LLC registration is approved and CA Statement of Information (Form LLC-12) is filed. FBN requires: Wyoming Certificate of Organization + CA SI-550. Filing fee: $50 + $8. Publication required within 45 days. | ⏳ Blocked on 2.8 |
+| 2.3 | **Execute Solo Founder OA** | ✅ COMPLETED Feb 10, 2026. Operating agreement drafted, reviewed, and signed via DocuSeal. | ✅ |
+| 2.4 | **Get EIN** | ✅ COMPLETED Feb 10, 2026. EIN obtained from IRS for Prosimian Labs LLC. | ✅ |
+| 2.5 | ~~**E-File 83(b) Election**~~ | **N/A — Not needed.** Single-member LLC with no equity grants; 83(b) election is unnecessary. | N/A |
+| 2.6 | **CA Virtual Office** | **WAITING FOR CA LLC-5.** Northwest virtual office setup will be finalized after CA foreign LLC registration is approved. Address: 2108 N St, Ste N, Sacramento, CA 95816. | ⏳ Blocked on 2.8 |
+| 2.7 | **WY Certificate of Good Standing** | ✅ COMPLETED. Certificate of Existence obtained from Wyoming SOS. | ✅ |
+| 2.8 | **CA Foreign Qualification** | **SUBMITTED Feb 10, 2026.** Form LLC-5 filed with California Secretary of State. Waiting for approval. Uses Northwest as CA registered agent. | ⏳ In Progress |
+| 2.9 | **CA Registered Agent** | ✅ COMPLETED. Northwest Registered Agent setup for California included in LLC-5 filing. | ✅ |
+| 2.10 | **Compile Startup Expense Receipts** | Collect payment receipts for business formation, software costs, and laptop purchases (up to $5,000 IRS startup deduction). **Note:** Some expenses paid from mom's personal card — document as member loan: (1) Create a simple promissory note from LLC to mom, (2) LLC reimburses mom from Mercury once funded, (3) Keep receipts + note for tax records. Accounting connected to Mercury. | ☐ |
 
 ---
 
@@ -472,15 +473,15 @@ cd ~/callsaver-docuseal
 
 | # | Task | Description | Status |
 |---|------|-------------|--------|
-| 3.1 | **Mercury & Stripe Setup** | Apply using Santa Cruz for personal KYC; CA Virtual Office for business verification. Requires: DBA (2.2), EIN (2.4), CA office (2.6) | ☐ |
-| 3.2 | **Stripe Production Mode** | Switch Stripe from test to production mode; configure production API keys | ☐ |
+| 3.1 | **Mercury & Stripe Setup** | ✅ Mercury application submitted (awaiting approval). ✅ Stripe account created and live (Feb 10, 2026) for Prosimian Labs LLC. Customer support address: 2108 N St, Ste N, Sacramento, CA 95816. | ✅ |
+| 3.2 | **Stripe Production Mode** | ✅ Stripe account is live with production keys. Need to run `setup-stripe-catalog.ts` to generate live catalog IDs and configure webhook endpoints. | ⏳ Partial |
 | 3.3 | **Stripe Webhooks (Staging + Production)** | Configure Stripe webhook endpoints for staging and production environments (in addition to existing ngrok URL) | ☐ |
 | 3.4 | **AWS SES Domain Verification** | **✅ COMPLETED Feb 8, 2026.** Domain `callsaver.ai` verified in SES us-west-1. DKIM records added to DNS stack. All sender identities verified: `alex@`, `info@`, `support@`, `billing@`, `legal@`, `reports@callsaver.ai`. Custom MAIL FROM configured | ✅ |
 | 3.4a | **Create SES SMTP Credentials for DocuSeal** | **✅ COMPLETED Feb 8, 2026.** IAM user `callsaver-ses-smtp` created (AKIA4FOROB4GLXDUNN45) with SES access. SMTP credentials stored in Secrets Manager under `docuseal/*` namespace | ✅ |
 | 3.5 | **AWS SES Production Request** | Submit production access request (see SES Production Request Draft in appendix). If rejected, switch to **Resend** as fallback — only requires API key swap in `email-adapter.ts`, supports same sender addresses. See SES Fallback Plan below | ☐ |
 | 3.6 | **Nango Webhooks (Staging + Production)** | Configure Nango webhook endpoints for staging and production environments (currently only points to ngrok) | ☐ |
 | 3.7 | **Intercom Webhooks & Subscription** | Set up Intercom webhooks and verify subscription is active | ☐ |
-| 3.8 | **Attio CRM: Account Migration** | Export all data from current Attio account (Azhar is primary account holder); create new Attio account under your email or contact Attio support to transfer ownership and remove Azhar's seat | ☐ |
+| 3.8 | **Attio CRM: Account Migration** | ✅ COMPLETED. Attio CRM transferred from Azhar to Alex. | ✅ |
 | 3.9 | **Attio CRM: Operator Plan Workflow** | Create Attio workflow to provision users on Operator plan (lower tier) | ☐ |
 | 3.10 | **Attio CRM: Scale Plan Workflow** | Create Attio workflow to provision users on Scale plan (higher tier) | ☐ |
 | 3.11 | **Cal.com Lead Enrichment** | Re-enable Cal.com; ensure webhook pushes enriched lead data to Attio (new account) | ☐ |
@@ -503,6 +504,8 @@ cd ~/callsaver-docuseal
 | 4.5 | **Fix Staging Web UI Build Vars** | `deploy-web-ui-staging.yml` does **NOT** inject `VITE_*` environment variables during the build step — unlike `deploy-web-ui-production.yml` which passes `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`, `VITE_API_URL`, `VITE_APP_ENV`. Without these, the staging frontend builds with **undefined** client-side config → broken auth, no maps, no error tracking. Fix: add the same `VITE_*` env block to the staging workflow's build step, using staging-specific values (`VITE_APP_ENV=staging`, `VITE_API_URL=https://staging.api.callsaver.ai`, etc.) | ✅ |
 | 4.6 | **Environment Separation Verification** | Verify distinct staging/production configs: separate databases, env vars, Vercel preview vs production, webhook endpoints. *Note: most of this is already covered by tasks 1.13 (production CDK stacks), 1.16-1.17 (separate secrets), 1.20 (separate Supabase), Section G (staging vs production differences). This task is a final verification pass to confirm nothing was missed* | ☐ |
 | 4.7 | **Landing Page Copy Review** | Pre-launch review of messaging, positioning, and CTAs on callsaver.ai | ☐ |
+| 4.7a | **Screen Recording Tool Evaluation** | Evaluate screen recording tools for dashboard video: Focusee, Cap.so, Poindeo. | ☐ |
+| 4.7b | **Update Logo Font (License Issue)** | Old logo used Avenir Next (commercial license). Recreated in Inkscape with **Figtree** font (OFL). Simplified to 2 variants × 3 formats: `black-logo.{svg,png,webp}` + `white-logo.{svg,png,webp}`. All Sandbox template logos deleted. Replaced across landing page (6 files), frontend (7 files), API (3 files). Updated `generate-msa-pdf.ts` to use Inter/Figtree. Added font comparison widget to both repos. Removed Avenir Next from frontend. **Still pending:** Upload logo to Stripe, DocuSeal, business cards. Make body font decision (Inter vs Figtree). | ✅ |
 | 4.8 | **Help Center / Documentation** | Set up customer-facing help center and product documentation | ☐ |
 | 4.9 | **Status Page** | Set up public status page (e.g., BetterUptime, Instatus) for customer trust | ☐ |
 | 4.10 | **Social Proof** | Get testimonial from Travis (electrician) for landing page | ☐ |
@@ -524,16 +527,16 @@ cd ~/callsaver-docuseal
 
 | Service | Account/Entity | Notes |
 |---------|----------------|-------|
-| LLC | Prosimian Labs LLC (Wyoming) DBA CallSaver | New LLC formation + DBA filing |
+| LLC | Prosimian Labs LLC (Wyoming) DBA CallSaver | ✅ Formed Feb 10. OA signed, EIN obtained. CA LLC-5 submitted. DBA pending CA LLC-12. |
 | Domain | Namecheap (`callsaver.ai`) | Transfer from Azhar required (Phase 0.1) |
 | AWS | Route 53, SES, ECS/Fargate, ECR, S3, Secrets Manager, ACM, CloudWatch (new account) | New account via mom's email; old account suspended |
 | Database | Supabase (Postgres) | External — not on AWS. `DATABASE_URL` in Secrets Manager |
-| Vercel | Landing page hosting (`callsaver-landing`) | Bill lapsed - needs payment |
+| Vercel | Landing page hosting (`callsaver-landing`) | ✅ Bill paid, deployed with Stripe compliance (Feb 10) |
 | Analytics | ContentSquare, GA4, GrowthBook | Health check required; no DNS needed |
 | Scheduling | Cal.com (Cloud) | Custom domain `book.callsaver.ai` + GA4 integration + Attio webhook |
 | Mail/Office | Northwest Registered Agent | WY (done) + CA (pending) |
-| Banking | Mercury | Requires DBA + EIN + CA office |
-| Payments | Stripe | Requires DBA + EIN + CA office |
+| Banking | Mercury | ✅ Application submitted Feb 10, awaiting approval |
+| Payments | Stripe | ✅ Account live Feb 10 for Prosimian Labs LLC. Support addr: Sacramento RA |
 | Email (Primary) | Google Workspace (`alex@callsaver.ai`) | DKIM export needed; bill due ~March 5, 2026 |
 | Email (Transactional) | AWS SES (fallback: Resend) | 4 sender addresses: `support@`, `billing@`, `alex@`, `reports@` |
 | Email (Cold Outbound) | Instantly.ai (`alex@trycallsaver.com`) | Already warming up (3 days in, 14-day warm-up) |
