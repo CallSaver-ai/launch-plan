@@ -50,7 +50,7 @@
 | 1.18 | **Update CDK SecretsNamespace** | Add the 14 missing secrets to `~/callsaver-api/infra/cdk/lib/config.ts` (SecretsNamespace interface + `getSecretsNamespace()`) and wire them into `backend-service-stack.ts` container secrets. Missing: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DIRECT_URL`, `INTERNAL_API_KEY`, `INTERCOM_CLIENT_SECRET`, `NANGO_SECRET_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `SENDGRID_API_KEY`, `SES_CONFIGURATION_SET`, `SES_FROM_EMAIL`, `QR_IP_HASH_SECRET`, `E2E_TEST_SECRET` | ✅ |
 | 1.19 | **Update GitHub Actions Secrets** | Update all GitHub Actions secrets for both repos (see Section F). Key changes: new AWS credentials, new IAM role ARN, new CloudFront distribution IDs, production Stripe publishable key (`pk_live_`). Update hardcoded old account ID `086002003598` in `deploy-staging.yml` | ☐ |
 | 1.20 | **Create Supabase Production Instance** | Create a separate Supabase project for production (`callsaver-production`, region: **West US / N. California**). **Start on Free plan** — upgrade to Pro happens at launch (task 4.20). Steps: (1) Create new Free org + project in Supabase dashboard. (2) Run Prisma migrations: `DATABASE_URL=<new-pooled-url> npx prisma migrate deploy`. (3) Configure Auth settings: magic link template, redirect URLs (`https://app.callsaver.ai/...`), email templates. (4) Copy new credentials: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `DIRECT_URL`. (5) Update production Secrets Manager entries with new values. **Staging continues to use existing project** (`arjdfatbdpegoyefdqfo.supabase.co`). This eliminates the risk of staging migrations breaking production | ☐ |
-| 1.21 | **Configure LiveKit Cloud S3 Credentials** | LiveKit Egress writes call recordings directly to S3. In the **LiveKit Cloud dashboard** → Settings → Egress: configure AWS credentials (access key + secret) for the new AWS account so Egress can write to `callsaver-sessions-staging-us-west-1` and `callsaver-sessions-production-us-west-1`. Create a dedicated IAM user with `s3:PutObject` permission scoped to these buckets only | ☐ |
+| 1.21 | **Configure LiveKit Cloud S3 Credentials** | **IAM COMPLETED Feb 11, 2026.** Created IAM user `callsaver-livekit-egress` (`AKIA4FOROB4GDBZH7JEY`) with `LiveKitEgressS3Access` inline policy scoped to `s3:PutObject`/`s3:PutObjectAcl`/`s3:ListBucket` on `callsaver-sessions-staging` and `callsaver-sessions-production`. Created comprehensive `services/livekit-egress-setup.md` documentation. Created comprehensive `docs/ai-agent/LIVEKIT_AGENT.md` (Python voice agent technical documentation). **MANUAL STEP REMAINING:** Enter S3 credentials in LiveKit Cloud dashboard (https://cloud.livekit.io) → Settings → Egress → S3 | ⏳ IAM ✅ / Dashboard ☐ |
 | 1.22 | **Staging Validation Checkpoint** | **✅ COMPLETED Feb 9, 2026.** Status: (1) ✅ API health endpoint responds on `staging.api.callsaver.ai` (verified). (2) ✅ Web UI loads on `staging.app.callsaver.ai` — **DEPLOYED** and fully functional. (3) ✅ Magic link login works (Supabase auth). (4) ✅ API endpoints accessible — all endpoints working after `supabase-auth.ts` fix. (5) ✅ DocuSeal API reachable from backend (completed Feb 9, 2026 — https://forms.callsaver.ai accessible with updated SMTP). **Staging fully validated and ready for production deployment.** | ✅ |
 | 1.25 | **Create CDK DNS Stack** | **✅ COMPLETED (Feb 8):** Deployed `Callsaver-DNS-staging` stack managing all Route 53 records as IaC. Created: Vercel A/CNAME/TXT, Google Workspace MX (5 records), SPF (combined Google+SES), DKIM, DMARC, subdomain CNAMEs (`staging.api` → ALB, `api` → ALB, `book` → cal.com, `help` → intercom.help). SES records and `staging.app`/`app`/`forms`/`auth` CNAMEs pending (need CloudFront domain, Elastic IP, Supabase custom domain). Deploy command: `pnpm cdk deploy Callsaver-DNS-staging -c staging.certificateArn=<ARN> -c hostedZoneId=Z0339740EIC19MEVQ7EI` | ✅ |
 | 1.23 | **Remove Hardcoded Old Account References** | Remove hardcoded ACM cert ARN (`086002003598`) from `backend-service-stack.ts`; update `deploy-local.sh` and CDK config to use new account values. **Fix `locations.ts:18`** — change hardcoded S3 region from `us-west-2` to `us-west-1` for `callsaver-cities-counties` bucket. **Must be committed before 1.11 CDK deploy** | ✅ |
@@ -155,7 +155,7 @@
 | Stack | Resources | Notes |
 |-------|-----------|-------|
 | `Callsaver-Network-staging` | VPC (2 AZs, 1 NAT GW), ALB security group (80/443), Fargate service SG (8080 from ALB) | CIDR `10.42.0.0/16` |
-| `Callsaver-Storage-staging` | S3: `callsaver-sessions-staging-us-west-1` (30-day lifecycle), S3: `callsaver-business-profiles-us-west-1` (versioned, intelligent tiering) | SSM params for bucket names |
+| `Callsaver-Storage-staging` | S3: `callsaver-sessions-staging` (30-day lifecycle), S3: `callsaver-business-profiles-us-west-1` (versioned, intelligent tiering) | SSM params for bucket names |
 | `Callsaver-Backend-staging` | ECS Cluster (`callsaver-staging`), Fargate Service (`callsaver-staging-v0`, 256 CPU / 512 MB), ALB (internet-facing, HTTP→HTTPS redirect), Blue/Green target groups, CloudWatch Logs (3-day retention), Auto-scaling (1–2 tasks, 60% CPU) | Rolling deploy for staging, Blue/Green for prod |
 | `Callsaver-Agent-staging` | Fargate Service (`callsaver-agent-staging`, 512 CPU / 2048 MB), Connects to LiveKit Cloud (`wss://callsaver-d8dm5v36.livekit.cloud`), Auto-scaling (1–2 tasks, 80% CPU) | No ALB — outbound only to LiveKit |
 
@@ -170,8 +170,8 @@
 
 | Bucket | Region | CDK Stack | Purpose |
 |--------|--------|-----------|---------|
-| `callsaver-sessions-staging-us-west-1` | us-west-1 | `Callsaver-Storage-staging` | Call recordings — **actively used by LiveKit Egress**. 30-day lifecycle |
-| `callsaver-sessions-production-us-west-1` | us-west-1 | `Callsaver-Storage-production` | Call recordings (production) |
+| `callsaver-sessions-staging` | us-west-1 | `Callsaver-Storage-staging` | Call recordings — **actively used by LiveKit Egress**. 30-day lifecycle |
+| `callsaver-sessions-production` | us-west-1 | `Callsaver-Storage-production` | Call recordings (production) |
 | `callsaver-company-website-extractions` | us-west-1 | `Callsaver-Storage-staging` | Business profiles extracted by crawl4ai pipeline. **This IS the business profiles bucket** — set `BUSINESS_PROFILES_S3_BUCKET` to this value in Secrets Manager. Used by both staging and production |
 | `callsaver-cities-counties` | us-west-1 | **`Callsaver-SharedData`** (new) | Cities/counties JSON for location picker. Shared across envs. **⚠️ Code fix in task 1.23: `locations.ts:18` hardcodes `us-west-2` → `us-west-1`** |
 | `callsaver-voice-samples` | us-west-1 | **`Callsaver-SharedData`** (new) | Voice sample audio files — **must re-upload audio files** after CDK creates bucket. Shared across envs |
@@ -200,7 +200,7 @@
 | 5 | `SENTRY_ENVIRONMENT` | Environment name | `staging` | `production` | ✅ |
 | 6 | `NODE_ENV` | Node environment | `production` | `production` | ✅ |
 | 7 | `APP_ENV` | App environment (controls URL routing) | `staging` | `production` | ✅ |
-| 8 | `SESSION_S3_BUCKET` | Call recording bucket | `callsaver-sessions-staging-us-west-1` | `callsaver-sessions-production-us-west-1` | ✅ |
+| 8 | `SESSION_S3_BUCKET` | Call recording bucket | `callsaver-sessions-staging` | `callsaver-sessions-production` | ✅ |
 | 9 | `BUSINESS_PROFILES_S3_BUCKET` | Business profiles bucket | `callsaver-company-website-extractions` | `callsaver-company-website-extractions` | ✅ |
 | 10 | `PROVISION_API_KEY` | Internal provisioning auth | Same | Same | ✅ |
 | 11 | `INTERCOM_ACCESS_TOKEN` | Intercom API token | Same | Same | ✅ |
@@ -350,7 +350,7 @@
 | `SENTRY_ENVIRONMENT` | `staging` | `production` |
 | `APP_URL` | `https://staging.app.callsaver.ai` | `https://app.callsaver.ai` |
 | `API_URL` | `https://staging.api.callsaver.ai` | `https://api.callsaver.ai` |
-| `SESSION_S3_BUCKET` | `callsaver-sessions-staging-us-west-1` | `callsaver-sessions-production-us-west-1` |
+| `SESSION_S3_BUCKET` | `callsaver-sessions-staging` | `callsaver-sessions-production` |
 | `STRIPE_SECRET_KEY` | `sk_test_...` | `sk_live_...` |
 | `STRIPE_WEBHOOK_SECRET` | Staging endpoint secret | Production endpoint secret |
 | `STRIPE_SUCCESS_URL` | `https://staging.app.callsaver.ai/onboarding/success` | `https://app.callsaver.ai/onboarding/success` |
