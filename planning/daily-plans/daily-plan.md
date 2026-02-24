@@ -160,12 +160,10 @@ After uploading the MSA PDF, the embedded invisible field tags should be **auto-
   - Create production webhook endpoint → `api.callsaver.ai/webhooks/stripe`
   - Add remaining 5 production secrets (WEBHOOK_SECRET, METER_ID, 3× PRICE_*)
 
-### Priority 3: AWS Activate Credits ($1,000) — ✅ APPLIED
+### Priority 3: AWS Activate Credits ($1,000) — ❌ DENIED
 - ✅ Application submitted Feb 11, 2026
-- ✅ Selected "Founders Package" ($1,000) with "No funding" status
-- ⏳ Awaiting approval (7-10 business days)
-- Credits will auto-apply to AWS account `836347236108`
-- Covers all AWS services including S3, ECS, SES, Amazon Bedrock (Claude, etc.)
+- ❌ **DENIED** due to "inconsistencies" — likely needs polished landing page / credible web presence
+- **Action:** Finish landing page tasks (font audit, copy, demo video, PageSpeed) → reapply
 
 ### Priority 4: LiveKit S3 Credentials (1.21) — ✅ COMPLETE
 - ✅ Created `callsaver-livekit-egress` IAM user with scoped S3 policy
@@ -173,10 +171,9 @@ After uploading the MSA PDF, the embedded invisible field tags should be **auto-
 - ✅ Created comprehensive `docs/ai-agent/LIVEKIT_AGENT.md` (Python voice agent docs)
 - ✅ **No manual LiveKit Cloud dashboard step needed** — the Python voice agent handles egress programmatically with per-request S3 credentials passed via the LiveKit Egress API. Dashboard S3 configuration is unnecessary.
 
-### Priority 5: Figtree Font Size Audit (4.7c) — 🔄 IN PROGRESS
-- Manual visual review by Alex of `~/callsaver-landing` and `~/callsaver-frontend`
-- Adjust sizes where Figtree renders smaller than Inter
-- Will share feedback after review
+### Priority 5: Figtree Font Size Audit (4.7c) — ✅ COMPLETED
+- ✅ Audited and adjusted Figtree font sizes across `~/callsaver-landing` and `~/callsaver-frontend`
+- ✅ Glassmorphism navbar fix also completed (landing-page-tasks.md Task 9)
 
 ### Priority 6: UI Improvements (New)
 
@@ -317,7 +314,8 @@ Both sandbox webhook endpoints already configured:
 **Goal:** Remove the `SKIP_TWILIO_PURCHASE=true` flag and re-enable full provisioning flow.
 
 ### Prerequisites
-- [ ] **Pay Twilio delinquent balance** ($22) — https://console.twilio.com/billing
+- ✅ **Pay Twilio delinquent balance** ($22) — COMPLETED Feb 11, 2026
+- ✅ **Pay LiveKit outstanding invoice** — COMPLETED Feb 11, 2026
 - [ ] Verify existing provisioned numbers are still active
 - [ ] Verify LiveKit Cloud connection: `wss://callsaver-d8dm5v36.livekit.cloud`
 

@@ -433,7 +433,7 @@ cd ~/callsaver-docuseal
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | set | LiveKit API access for SIP provisioning |
 
 **To go live with phone provisioning:**
-1. Pay Twilio $22 delinquent balance (3.13)
+1. ✅ Pay Twilio $22 delinquent balance (3.13) — COMPLETED Feb 11, 2026
 2. Set `SKIP_TWILIO_PURCHASE=false` in Secrets Manager (staging + production)
 3. Verify LiveKit SIP integration is working (agent connects to LiveKit Cloud, SIP trunk routes calls)
 
@@ -486,7 +486,7 @@ cd ~/callsaver-docuseal
 | 3.10 | **Attio CRM: Scale Plan Workflow** | Create Attio workflow to provision users on Scale plan (higher tier) | ☐ |
 | 3.11 | **Cal.com Lead Enrichment** | Re-enable Cal.com; ensure webhook pushes enriched lead data to Attio (new account) | ☐ |
 | 3.12 | **Pricing Review** | Review and finalize Operator, Growth, and Scale plan pricing before launch | ☐ |
-| 3.13 | **Twilio Account Reactivation** | Pay $22 delinquent balance on Twilio account. Re-enable Twilio and LiveKit SIP integration. Currently mocked via `SKIP_TWILIO_PURCHASE=true` env var — set to `false` when ready for live phone provisioning. Verify existing provisioned numbers are still active | ☐ |
+| 3.13 | **Twilio Account Reactivation** | ✅ PAID Feb 11, 2026. $22 delinquent balance paid. Re-enable Twilio and LiveKit SIP integration. Set `SKIP_TWILIO_PURCHASE=false` env var. Verify existing provisioned numbers are still active | ✅ |
 | 3.14 | **Configure Cal.com Custom Domain** | In Cal.com dashboard → Settings → Organizations → Custom domain: set `book.callsaver.ai`. Update Cal.com embed code in `callsaver-landing` if URL changes. Also update hardcoded `azharhuda/demo` Cal.com link in `server.ts:15140` to your Cal.com username | ☐ |
 | 3.15 | **Configure Intercom Custom Domain** | In Intercom → Settings → Help Center → Custom domain: set `help.callsaver.ai`. Add CNAME record (already in DNS checklist) | ☐ |
 | 3.16 | **Configure Supabase Custom Domain** | Deferred to **task 4.20** (right before launch). Custom domain `auth.callsaver.ai` requires Pro plan. Will be enabled when production org is upgraded to Pro. DNS CNAME already in checklist | ☐ |
@@ -547,7 +547,7 @@ cd ~/callsaver-docuseal
 | CI/CD | GitHub Actions + Vercel | `callsaver-api`, `callsaver-web-ui`, `callsaver-landing` |
 | DocuSeal | `forms.callsaver.ai` | E-signature service; redeploy in us-west-1 on new AWS |
 | LiveKit | `wss://callsaver-d8dm5v36.livekit.cloud` | Voice AI agent connection (cloud, no custom domain) |
-| Twilio | Voice telephony | **Delinquent (-$22)**, currently mocked. `SKIP_TWILIO_PURCHASE=true` in env. Pay balance before launch |
+| Twilio | Voice telephony | ✅ **Paid Feb 11, 2026.** $22 delinquent balance cleared. Ready for reactivation by setting `SKIP_TWILIO_PURCHASE=false` in env. |
 | Google Cloud | GCP (Gemini, Places, Geocoding, Weather, PageSpeed, Maps, GBP, Routes) | ⚠️ Possibly delinquent under `alex@callsaver.ai`. Fallback: `scrumptiouslemur@gmail.com`. See `external-services-inventory.md` |
 | Upstash | Redis (managed) | **Production:** Upstash Redis (shared, persistent, free tier). **Staging:** ECS sidecar (localhost:6379, ephemeral) |
 | Print | Moo.com | Business cards + flyers |

@@ -71,14 +71,14 @@
 | 3.8 | **Attio CRM: Account Migration** | ✅ COMPLETED. Attio CRM transferred from Azhar to Alex. | ✅ |
 | 3.9 | **Attio CRM: Operator Plan Workflow** | Create Attio workflow to provision users on Operator plan (lower tier) | ☐ |
 | 3.10 | **Attio CRM: Scale Plan Workflow** | Create Attio workflow to provision users on Scale plan (higher tier) | ☐ |
-| 3.11 | **Cal.com Lead Enrichment** | Re-enable Cal.com; ensure webhook pushes enriched lead data to Attio (new account) | ☐ |
+| 3.11 | **Cal.com Lead Enrichment Pipeline** | ⏳ **IN PROGRESS (Feb 13, staging).** Enhancing Cal.com webhook to extract `businessNameAndLocation`, phone, scheduling software, notes from booking responses. Adding Attio Company+Person creation and Google Places lookup. See `planning/pipeline-plan.md` for full plan. **Staging first** → migrate to production before launch. | ⏳ Staging |
 | 3.12 | **Pricing Review** | Review and finalize Operator, Growth, and Scale plan pricing before launch | ☐ |
-| 3.13 | **Twilio Account Reactivation** | Pay $22 delinquent balance on Twilio account. Re-enable Twilio and LiveKit SIP integration. Currently mocked via `SKIP_TWILIO_PURCHASE=true` env var — set to `false` when ready for live phone provisioning. Verify existing provisioned numbers are still active | ☐ |
+| 3.13 | **Twilio Account Reactivation** | ✅ PAID Feb 11, 2026. $22 delinquent balance paid. Re-enable Twilio and LiveKit SIP integration by setting `SKIP_TWILIO_PURCHASE=false` env var. Verify existing provisioned numbers are still active | ✅ |
 | 3.14 | ~~**Configure Cal.com Custom Domain**~~ | **SKIPPED.** Cal.com embed works fine with default URL. Custom domain not worth the effort for a booking widget. | N/A |
 | 3.15 | **Configure Intercom Custom Domain** | **DEFERRED to closer to launch (free).** Set up `help.callsaver.ai` for Help Center. Do this after Help Center content is written (4.8). **Setup steps:** (1) Go to Intercom → [Help Center Settings](https://app.intercom.io/a/apps/_/articles/site/settings) → General → Domains. (2) Enter `help.callsaver.ai`. (3) Intercom will show target URL — for HTTPS quick setup use `us.intercomhelpcenter.com` (US region). (4) In Route 53, create CNAME: `help` → `custom.intercom.help` (US region). (5) DNS propagation up to 72 hours (usually faster). (6) For HTTPS: use "HTTPS (quick setup)" if available in workspace — Intercom auto-provisions SSL. Otherwise use AWS CloudFront: create distribution with origin `custom.intercom.help` (HTTPS only, TLSv1.2), forward all headers/cookies/query strings (legacy cache settings), add `help.callsaver.ai` as alternate domain name with ACM cert, then CNAME `help` → CloudFront distribution domain. (7) Existing `intercom.help/callsaver` links auto-redirect. **Important:** For logged-in user recognition + audience targeting, Help Center must share top-level domain with app (`callsaver.ai` ✅). **Ref:** https://developers.intercom.com/docs/guides/help-center/custom-domains | ⏳ Deferred |
 | 3.17 | **Configure Stripe Custom Domain** | **DEFERRED — $10/mo cost.** Not needed for launch; Stripe's default `checkout.stripe.com` is universally trusted and arguably better for payment page credibility. Revisit once revenue justifies the spend. Setup when ready: `billing.callsaver.ai` → Stripe Dashboard → Settings → Custom domains. Route 53: CNAME `billing` → `hosted-checkout.stripecdn.com` + TXT `_acme-challenge.billing` → value from dashboard. **Ref:** https://docs.stripe.com/payments/checkout/custom-domains | ⏳ Deferred |
 | 3.16 | **Configure Supabase Custom Domain** | Deferred to **task 4.20** (right before launch). Custom domain `auth.callsaver.ai` requires Pro plan. Will be enabled when production org is upgraded to Pro. DNS CNAME already in checklist | ☐ |
-| 3.18 | **AWS Activate Credits** | **✅ APPLIED Feb 11, 2026.** Founders Package ($1,000) submitted with "No funding" status. Awaiting approval (7-10 business days). Credits auto-apply to AWS account `836347236108`. Covers all AWS services incl. S3, ECS, SES, Bedrock. Expire in 1-2 years. Check status: https://aws.amazon.com/startups/credits/status | ⏳ Applied |
+| 3.18 | **AWS Activate Credits** | **❌ DENIED Feb 11, 2026.** Founders Package ($1,000) rejected due to "inconsistencies" — likely needs a polished landing page / more credible web presence before reapplying. **Action:** Finish landing page polish (4.7, 4.7c, landing-page-tasks.md), then reapply. | ☐ Reapply after landing page |
 
 ---
 
@@ -95,12 +95,11 @@
 | 4.7 | **Landing Page Copy Review** | Pre-launch review of messaging, positioning, and CTAs on callsaver.ai | ☐ |
 | 4.7a | **Screen Recording Tool Evaluation** | Evaluate screen recording tools for dashboard video: Focusee, Cap.so, Poindeo. Test each tool's features, pricing, and output quality. Choose best option for recording dashboard demo video. | ☐ |
 | 4.7b | **Update Logo Font (License Issue)** | **✅ COMPLETED Feb 11, 2026.** Logo recreated with Figtree font (OFL licensed). All repos updated. Font toggle removed. See detail section below. | ✅ |
-| 4.7c | **Figtree Font Size Audit** | Figtree renders tighter/smaller than Inter at equivalent sizes. Audit and adjust font sizes across: (1) `~/callsaver-landing` — `_variables.scss` (`$font-size-root`, `$font-size-base`, heading sizes), `style.scss`, component overrides. (2) `~/callsaver-frontend` — `theme.css`, `index.css`, Tailwind config, component `text-[]` classes. MSA PDF sizing confirmed OK — no changes needed. | ☐ |
+| 4.7c | **Figtree Font Size Audit** | **✅ COMPLETED Feb 11, 2026.** Figtree font sizes audited and adjusted across `~/callsaver-landing` (SCSS variables, component overrides) and `~/callsaver-frontend` (theme.css, Tailwind). MSA PDF sizing confirmed OK. | ✅ |
 | 4.8 | **Help Center / Documentation** | Set up customer-facing help center using **Intercom Articles**. Steps: (1) Go to Intercom → Articles → Help Center → turn on Help Center. (2) Write initial articles: Getting Started, How AI Agent Works, Managing Your Account, Billing & Plans, Troubleshooting. (3) Organize into collections (e.g. Getting Started, Account, Billing, Technical). (4) Customize Help Center appearance (logo, colors, branding). (5) After content is ready, configure custom domain `help.callsaver.ai` (task 3.15). **Note:** Help Center shares top-level domain with `app.callsaver.ai`, enabling logged-in user recognition and audience targeting for articles | ☐ |
 | 4.9 | **Status Page** | Set up public status page (e.g., BetterUptime, Instatus) for customer trust | ☐ |
 | 4.10 | **Social Proof** | Get testimonial from Travis (electrician) for landing page | ☐ |
 | 4.11 | **Upload DocuSeal MSA Template** | **✅ COMPLETED Feb 11, 2026.** MSA PDF regenerated with updated URLs (`/privacy-policy`, `/terms-of-service`), Figtree font, local date + timestamp naming (`MSA-YYYY-MM-DD-HHmm.pdf`). Uploaded to DocuSeal at forms.callsaver.ai. Template fields configured: 5 Customer fields (Legal Name, Company, Title — read-only/pre-filled from Attio; Date — auto-sign; Signature) + 4 CallSaver fields (Legal Name — Alexander Sikand, Title — Founder, both read-only; Date; Signature). Signing order: Customer first → CallSaver countersigns. Template name contains "MSA" for `getLatestMSATemplateId()` auto-detection | ✅ |
-| 4.12 | **Replace Google Maps with MapCN** | Replace the Google Maps component in location cards (`~/callsaver-frontend`) with [MapCN](https://www.mapcn.dev/) for a more custom/modern feel instead of the default Google Maps UI. MapCN is a React map component library. Evaluate: (1) Does it support the pin/marker features we need? (2) Does it work with our existing geocoded lat/lng data? (3) Can we remove the Google Maps JS API dependency from the frontend (saves `VITE_GOOGLE_MAPS_API_KEY` exposure + bundle size)? | ☐ |
 | 4.12a | **LiveKit Agents-UI: Landing Page Audio Visualizer** | **✅ COMPLETED Feb 11, 2026.** Replaced Wave.js turntable with standalone LiveKit-inspired Aura shader visualizer (WebGL + Web Audio API). Added smooth two-phase enter/exit animation. Also fixed: geo banner + header combined overlay slide-in, nav/banner font 18px/600, button alignment, hover transition, GA4 `play_call_demo_clicked` event, GrowthBook error suppression, dev FontControlWidget. Commit `7b7e79d`. | ✅ |
 | 4.12b | **LiveKit Agents-UI: Interactive Voice Agent in Frontend** | Add a LiveKit-powered interactive voice agent UI to the per-location settings in `~/callsaver-frontend` (`LocationsPage`). Currently users can only play a sample of their voice agent — this would let them **actually talk to their configured agent** via WebRTC (no phone/Twilio needed). Use `@livekit/agents-ui` React components to build an in-browser voice interface that connects to the LiveKit Python agent API. Steps: (1) Add LiveKit room token generation endpoint to API. (2) Integrate `@livekit/components-react` in LocationsPage. (3) Connect to the same Python voice agent that handles phone calls. (4) Add start/stop controls and audio visualization. | ☐ |
 | 4.13 | **CloudWatch Alarms** | Set up CloudWatch alarms for: API ALB 5xx error rate, ECS task health (unhealthy count > 0), ECS CPU/memory utilization > 80%, ALB target response time > 5s. Configure SNS topic to email `alex@callsaver.ai` for alerts. **Also add alarms for Agent service** (CPU/memory, task health) | ☐ |
@@ -142,6 +141,7 @@
 | # | Task | Description | Status |
 |---|------|-------------|--------|
 | 1.13 | **Reconstruct AWS Infrastructure (Production API)** | Stand up production ECS/Fargate environment: `Callsaver-Network-production`, `Callsaver-Storage-production`, `Callsaver-Backend-production`, `Callsaver-Agent-production`. Create production Secrets Manager entries under `callsaver/production/backend/` and `callsaver/production/agent/` | ☐ |
+| 1.13a | **Cal.com Pipeline: Staging → Production Migration** | Migrate Cal.com → Attio → Google Places pipeline from staging to production. Checklist: (1) Update Cal.com webhook URL to `api.callsaver.ai`. (2) Add `ATTIO_API_KEY` + `GOOGLE_MAPS_API_KEY` to production Secrets Manager. (3) Update `CAL_WEBHOOK_SECRET` in production. (4) Test full flow end-to-end on production. See `planning/pipeline-plan.md` § Staging → Production Migration Checklist | ☐ |
 | 1.14 | **Deploy Web UI (Production)** | Deploy `callsaver-frontend` production: run CDK for `FrontendProductionStack`, then deploy static build. May need same wildcard cert + associate-alias approach if `app.callsaver.ai` has same CNAME conflict from old account | ☐ |
 | 1.17 | **Create All AWS Secrets Manager Entries (Production)** | Create all secrets under `callsaver/production/backend/` and `callsaver/production/agent/`. Use production-specific values where different. **Run `scripts/setup-stripe-catalog.ts` against production Stripe** to generate live catalog IDs | ☐ |
 | 4.6 | **Environment Separation Verification** | Final verification pass: distinct staging/production configs, separate databases, env vars, webhook endpoints | ☐ |
@@ -236,14 +236,15 @@
 20. ✅ Stripe billing portal: sandbox updated + **production portal created** (`bpc_1SznC3K6cCQ0p7wduEKtDCLv`) with `app.callsaver.ai` privacy/terms links
 21. ✅ AWS Secrets Manager: created 3 missing staging secrets + 4 production secrets for Stripe (7 total new secrets)
 22. ✅ Uploaded logo to Stripe Dashboard + disabled built-in Stripe emails (sandbox + live)
-
 23. ✅ MSA PDF regenerated with updated URLs, local date + timestamp naming, committed to git
 24. ✅ DocuSeal MSA template uploaded + all fields configured (4.11)
 25. ✅ LiveKit 1.21 fully complete — no dashboard step needed (agent handles egress programmatically with per-request S3 creds)
-26. ✅ AWS Activate Founders credits applied ($1,000) — awaiting approval (7-10 business days)
+26. ❌ AWS Activate Founders credits ($1,000) — **DENIED** due to "inconsistencies". Reapply after landing page is polished
+27. ✅ **Twilio bill paid** — $22 delinquent balance cleared on Feb 11, 2026
+28. ✅ **LiveKit outstanding invoice paid** — Paid on Feb 11, 2026
 
 **Next Up:**
-1. Pay Twilio $22 delinquent balance (3.13)
+1. ✅ Pay Twilio $22 delinquent balance (3.13) — COMPLETED Feb 11, 2026
 2. SES production access request (3.5)
 3. Figtree font size audit (4.7c)
 
@@ -251,7 +252,7 @@
 1. Complete remaining Stripe production setup (catalog, webhooks) — blocked on `api.callsaver.ai` deploy
 2. Wait for CA LLC-5 approval → file LLC-12 → file FBN
 3. Complete remaining pre-launch tasks (Phase 4)
-4. Wait for AWS Activate credits approval (7-10 business days)
+4. Polish landing page → reapply for AWS Activate credits
 
 **Key Dependencies:**
 - **Redirect loop fix → Staging validation (1.22)**

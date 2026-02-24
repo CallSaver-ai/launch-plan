@@ -1,11 +1,10 @@
 # Landing Page Tasks — Evening Sprint (Feb 11, 2026)
 
-## 1. Figtree Font Sizing Audit
+## 1. Figtree Font Sizing Audit — ✅ COMPLETED (Feb 11, 2026)
 - Full audit of Figtree font sizing across every section of the landing page
-- Check heading hierarchy (h1–h6), body text, lead text, button text, nav links
-- Verify responsive sizing (mobile vs tablet vs desktop)
-- Ensure consistent use of font weights and sizes per design system
-- Fix any inconsistencies or oversized/undersized text
+- Checked heading hierarchy (h1–h6), body text, lead text, button text, nav links
+- Verified responsive sizing (mobile vs tablet vs desktop)
+- Fixed inconsistencies in font weights and sizes per design system
 
 ## 2. Geo Banner Animation Timing Fix — ✅ COMPLETED (Feb 11, 2026)
 
@@ -41,22 +40,12 @@ Wrapped banner + header in a single `position: fixed` overlay container. Both sl
 - Ensure the recording is high quality, shows key features, and loops well
 - Optimize file size for web (consider WebM + MP4 fallback)
 
-## 6. Recover Longer Hero Video from Windows Installation
-- Boot into Windows on dual-boot laptop
-- Locate and recover the longer video demo previously created
-- Replace the current `HeroHeaderVideo-quarter-length.mp4` which loops too quickly
-- Ensure the new video is optimized for web delivery (compressed, correct codec)
-- Test that the hero background video plays smoothly without visible loop seam
+## 6. Recover Longer Hero Video from Windows Installation — ❌ CANCELLED (Feb 13, 2026)
+- Video could not be located on Windows partition
+- **Replaced by:** Storyblocks video background purchase (see `daily-plan-feb-13.md` Task 1)
 
-## 7. PageSpeed Insights Score Audit
-- Run Google PageSpeed Insights for both mobile and desktop
-- Document current scores (Performance, Accessibility, Best Practices, SEO)
-- Identify and fix top issues impacting performance:
-  - Image optimization (WebP/AVIF, lazy loading, proper sizing)
-  - JavaScript bundle size
-  - Render-blocking resources
-  - CLS / LCP / FID metrics
-- Re-run after fixes and document improvement
+## 7. PageSpeed Insights Score Audit — ✅ DONE / DEFERRED (Feb 13, 2026)
+- Scores are high enough for now; revisit in the future if needed
 
 ## 8. SEO Competitive Analysis
 - Analyze callsaver.ai vs competitors:
@@ -73,9 +62,11 @@ Wrapped banner + header in a single `position: fixed` overlay container. Both sl
 - Document findings and actionable improvements for callsaver.ai
 - Implement quick-win SEO fixes identified during analysis
 
-## 9. Sticky Navbar/Banner Overlay — Improve Appearance Over White Sections
+## 9. Sticky Navbar/Banner Overlay — ✅ COMPLETED (Feb 11, 2026)
 
-### Problem
+Glassmorphism / frosted glass approach implemented (Option A).
+
+### Original Problem (resolved)
 When the user scrolls past the hero (dark video background), the sticky banner+navbar overlay crosses over white/light sections (Features, FAQ, etc.). The opaque white navbar with the purple geo banner looks jarring and disconnected against the white page backgrounds — no visual separation, the banner color clashes, and it feels like a foreign element floating over the content.
 
 ### Brainstormed Approaches
@@ -169,15 +160,21 @@ Full manual visual review by Alex of the entire landing page on mobile screen si
 - Footer — column stacking, link tap targets, email links, logo sizing
 - General — font sizes feel right on small screens, no horizontal overflow, no cut-off text, adequate touch targets (min 44px), spacing between sections
 
+## 11. Update Login URL to Production
+
+After production environment (`app.callsaver.ai`) is deployed, update the Login links in the landing page from `staging.app.callsaver.ai/dashboard` to `app.callsaver.ai/dashboard`. Two locations:
+- Desktop navbar: `/src/components/blocks/navbar/components/header-right.tsx`
+- Mobile sidebar: `/src/components/blocks/navbar/navbar-1/Navbar-1.tsx`
+
 ---
 
 ## Priority Order
 1. ~~Geo banner animation timing fix~~ — ✅ DONE
-2. Figtree font sizing audit (nav links + geo banner already done at 18px/600)
+2. ~~Figtree font sizing audit~~ — ✅ DONE
 3. Website copy audit + SEO competitive analysis (combined — SEO keyword/content analysis feeds directly into copy improvements; also generate hero headline A/B test variations during this step)
 4. GrowthBook proper setup (wire up the A/B test variations from step 3)
 5. OpenScreen app demo recording & replace static screenshot
-6. Recover longer hero video from Windows & replace current short loop
-7. PageSpeed Insights audit & fixes
-8. Sticky navbar/banner overlay improvement (see Task 9 for approaches)
+6. ~~Recover longer hero video from Windows~~ — ❌ CANCELLED (video not found; replaced by Storyblocks purchase)
+7. ~~PageSpeed Insights audit~~ — ✅ DONE / DEFERRED (scores sufficient for now)
+8. ~~Sticky navbar/banner overlay improvement~~ — ✅ DONE (glassmorphism)
 9. Mobile visual review (manual — Alex)
