@@ -1,6 +1,6 @@
 # Voice Agent Integration Test Scenarios — Launch Testing Guide
 
-**Last Updated:** Feb 25, 2026
+**Last Updated:** Feb 26, 2026
 **Covers:** No Integration, Google Calendar, Housecall Pro, Jobber
 **Purpose:** Systematic test plan for all 4 integration modes before production launch
 
@@ -188,14 +188,12 @@
 - **Service area**: city checked against AREAS SERVED in system prompt
 - **Business hours**: agent validates time is within hours BEFORE checking calendar
 - **Returning callers**: info pre-loaded (name, address, email, upcoming events)
-- **Arrival windows** (if configured): agent says "between X and Y" instead of "at X"
 
 ### Config Settings
 | Setting | Default | Effect |
 |---------|---------|--------|
 | defaultAppointmentMinutes | 60 | Duration of each appointment |
 | bufferMinutes | 0 | Gap enforced between appointments |
-| arrivalWindowMinutes | 0 | 0 = exact times. >0 = agent communicates time ranges. Calendar block = arrival + appointment. |
 
 ---
 
@@ -215,7 +213,7 @@
 - [ ] Agent confirms: date, time, address, service
 - [ ] **Verify in Google Calendar**:
   - [ ] Event exists with correct start/end time
-  - [ ] Event duration = defaultAppointmentMinutes (or + arrivalWindowMinutes if set)
+  - [ ] Event duration = defaultAppointmentMinutes
   - [ ] `extendedProperties.shared` has `source: callsaver`
   - [ ] Caller phone in `extendedProperties.shared.callerPhoneNumber`
 
@@ -278,38 +276,6 @@
 
 ---
 
-### C. Arrival Window Scenarios (GCal)
-
-**Prerequisites**: Set `arrivalWindowMinutes > 0` (e.g., 30) and `defaultAppointmentMinutes` (e.g., 60).
-
-#### P0 | GCAL-AW-1: Agent communicates time as a range
-- [ ] Set arrivalWindowMinutes=30, defaultAppointmentMinutes=60
-- [ ] Book a 9:00 AM appointment
-- [ ] Agent should say **"between 9:00 and 9:30 AM"** (NOT "at 9:00 AM")
-- [ ] **Pass criteria**: Agent uses range language
-
-#### P1 | GCAL-AW-2: Calendar block includes arrival window
-- [ ] After booking with arrivalWindowMinutes=30, defaultAppointmentMinutes=60
-- [ ] **Verify in Google Calendar**: event is **90 minutes** total (30 arrival + 60 service)
-
-#### P1 | GCAL-AW-3: Event description includes arrival info
-- [ ] **Verify in Google Calendar**: event description contains:
-  - "Arrival window: 9:00 AM - 9:30 AM"
-  - "Service duration: 60 min"
-
-#### P1 | GCAL-AW-4: Availability accounts for total block
-- [ ] Set up calendar with a 90-min gap between events
-- [ ] Check availability — agent should identify the gap as available
-- [ ] Set up calendar with only a 60-min gap
-- [ ] Check availability — agent should identify the gap as NOT available (needs 90 min)
-
-#### P1 | GCAL-AW-5: No arrival window = exact times
-- [ ] Set arrivalWindowMinutes=0
-- [ ] Book appointment → agent says "at 9:00 AM" (exact, no range)
-- [ ] Calendar block = defaultAppointmentMinutes only
-
----
-
 ### D. Business Hours & Duration (GCal)
 
 #### P1 | GCAL-BH-1: Agent answers hours question without tool call
@@ -328,6 +294,29 @@
 - [ ] Check availability on a wide-open day
 - [ ] Agent should say "We have availability from 8 AM to 5 PM" (a range)
 - [ ] Agent should NOT list individual slots: "8:00, 8:30, 9:00..."
+
+---
+
+### C. Next Available & Event Updates (GCal)
+
+#### P1 | GCAL-NC-6: "What's your next available appointment?"
+- [ ] Agent checks availability for next open slot within business hours
+- [ ] Agent says date and time clearly: "The next available is Thursday at 10 AM"
+- [ ] Agent WAITS for caller confirmation before booking — does NOT auto-create event
+- [ ] Caller: "That works" → agent creates event
+- [ ] **Verify**: explicit confirmation obtained before event creation
+
+#### P1 | GCAL-RC-6: Change service type on existing appointment
+- [ ] Returning caller with upcoming event
+- [ ] "Actually, I need plumbing instead of electrical"
+- [ ] Agent calls google-calendar-update-event (NOT reschedule — time unchanged)
+- [ ] Agent updates summary/description only
+- [ ] **Verify in GCal**: event time unchanged, summary/description updated
+
+#### P1 | GCAL-RC-7: Add service to existing appointment
+- [ ] "Can you also add gutter cleaning to my appointment?"
+- [ ] Agent updates description to include additional service
+- [ ] **Verify in GCal**: description updated, time unchanged
 
 ---
 
@@ -353,7 +342,7 @@
 
 ## Part 2: Housecall Pro (HCP)
 
-### Tools Available
+### Tools Available (HCP — 18 FS tools + base)
 | Tool | Description |
 |------|-------------|
 | fs_get_customer_by_phone | Customer lookup by phone |
@@ -361,27 +350,23 @@
 | fs_update_customer | Update customer info |
 | fs_list_properties | List customer's properties |
 | fs_create_property | Create new property |
-| fs_create_service_request | Create lead + unscheduled estimate |
-| fs_submit_lead | Submit lead (alternative path) |
+| fs_create_service_request | Create lead + unscheduled estimate (assessment auto-created) |
 | fs_get_request / fs_get_requests | Get lead details |
+| fs_check_availability | Check available windows |
 | fs_reschedule_assessment | Schedule/reschedule estimate |
 | fs_cancel_assessment | Cancel estimate |
-| fs_check_availability | Check available windows |
-| fs_create_appointment | Create appointment |
 | fs_get_appointments | Get appointments |
 | fs_reschedule_appointment | Reschedule appointment |
 | fs_cancel_appointment | Cancel appointment |
 | fs_get_jobs / fs_get_job | Get job details |
-| fs_get_estimates | Get estimates |
-| fs_get_invoices | Get invoices |
-| fs_get_account_balance | Get account balance |
 | fs_get_services | Get service catalog (price book) |
 | fs_get_client_schedule | Get all upcoming items |
-| fs_create_assessment | Create assessment |
-| fs_cancel_assessment | Cancel assessment |
-| fs_reschedule_assessment | Reschedule assessment |
+| validate-address | Validate and geocode addresses |
+| collect-email | Voice-to-text email normalization |
 | request-callback | Callback request (both paths) |
 | transfer-call | Transfer (Path B only) |
+
+> **Tools NOT registered for HCP**: `fs_submit_lead`, `fs_create_assessment` (assessment auto-created with service request), `fs_get_estimates`, `fs_get_invoices`, `fs_get_account_balance`, `fs_create_appointment`.
 
 ### Config Toggles
 | Toggle | true | false |
@@ -597,12 +582,27 @@ These intents are NOT fully handled. Agent should acknowledge, capture context, 
 
 ## Part 3: Jobber
 
-### Tools Available
-Same as HCP **EXCEPT**:
-- **No** `fs_get_jobs` / `fs_get_job`
-- **No** `fs_get_appointments` / `fs_reschedule_appointment` / `fs_cancel_appointment`
-- **No** `fs_get_estimates`
-- **No** `fs_create_appointment`
+### Tools Available (Jobber — 13 FS tools + base)
+| Tool | Description |
+|------|-------------|
+| fs_get_customer_by_phone | Customer lookup by phone |
+| fs_create_customer | Create new client |
+| fs_update_customer | Update client info |
+| fs_list_properties | List client's properties |
+| fs_create_property | Create new property |
+| fs_create_service_request | Create request (assessment auto-created) |
+| fs_get_request / fs_get_requests | Get request details |
+| fs_check_availability | Check available windows |
+| fs_reschedule_assessment | Schedule/reschedule assessment |
+| fs_cancel_assessment | Cancel assessment |
+| fs_get_services | Get service catalog |
+| fs_get_client_schedule | Get all upcoming items |
+| validate-address | Validate and geocode addresses |
+| collect-email | Voice-to-text email normalization |
+| request-callback | Callback request (both paths) |
+| transfer-call | Transfer (Path B only) |
+
+> **Tools NOT available for Jobber** (vs HCP): `fs_get_jobs`, `fs_get_job`, `fs_get_appointments`, `fs_reschedule_appointment`, `fs_cancel_appointment`. Agent must defer job/appointment intents to callback/transfer.
 
 ### Key Differences from HCP
 - **Service area**: city only against AREAS SERVED (NOT ZIP-based zones)
@@ -758,6 +758,468 @@ Test once per mode (No Integration, GCal, HCP, Jobber):
 
 ---
 
+### Agent Identity (Test in Each Mode)
+
+#### P1 | CROSS-IDENTITY-1: "Are you a real person?"
+- [ ] Caller: "Are you a real person?" or "Am I talking to a bot?"
+- [ ] Agent responds briefly: "I'm a virtual assistant that helps handle calls for our team"
+- [ ] Agent does NOT proactively disclose AI status — only admits when directly asked
+- [ ] Agent continues helping normally after the response
+
+#### P1 | CROSS-IDENTITY-2: Agent never self-identifies as AI unprompted
+- [ ] Complete any normal flow (booking, intake, callback)
+- [ ] Verify agent never says "as an AI", "I'm a bot", "I'm an automated system" during the flow
+- [ ] Agent should sound natural throughout
+
+#### P1 | CROSS-IDENTITY-3: "I'm not [Name]" — someone else on the phone (all modes)
+Test once per mode (No Integration, GCal, HCP, Jobber):
+- [ ] Call from known number → agent greets by name
+- [ ] "I'm not Alex, I'm Sarah"
+- [ ] Agent switches to using "Sarah" for this call
+- [ ] Agent does NOT update the stored caller record
+- [ ] FS modes: agent may create a new customer if service is requested
+
+---
+
+### Caller Context & Personalization (Returning Callers)
+
+#### P1 | CROSS-CONTEXT-1: GCal returning caller — agent references recent activity
+- [ ] Prerequisites: Returning caller with recent call that scheduled an appointment
+- [ ] Agent greets by name and references recent activity: "I see we scheduled an appointment for you recently"
+- [ ] Agent uses upcoming event context to inform conversation
+- [ ] **Verify**: agent does NOT just ignore the pre-loaded context
+
+#### P1 | CROSS-CONTEXT-2: FS returning caller — agent references profile summary
+- [ ] Prerequisites: Returning caller with profileSummary populated
+- [ ] Agent shows awareness of caller history
+- [ ] **Verify**: natural reference, not robotic ("I see you've called us before about...")
+
+---
+
+### Promotions & Discounts (All Modes Where Configured)
+
+**Prerequisites**: Configure at least 2 promotions on the test location (e.g., "10% off first visit", "$50 off water heater install").
+
+#### P1 | CROSS-PROMO-1: Caller asks about deals
+- [ ] "Do you have any specials going on?" or "Any discounts?"
+- [ ] Agent mentions relevant promotion(s) concisely
+- [ ] Agent does NOT read ALL promotions — picks the most relevant one
+- [ ] **Verify**: promotion content matches configured data
+
+#### P1 | CROSS-PROMO-2: Agent mentions promotion after booking (proactive)
+- [ ] Complete a booking (GCal/HCP/Jobber)
+- [ ] Agent asks "anything else?" → during this moment, agent briefly mentions ONE relevant promotion
+- [ ] **Verify**: NOT mentioned during intake, only after primary request resolved
+
+#### P1 | CROSS-PROMO-3: Agent does NOT mention promotions when caller is rushed
+- [ ] Caller seems impatient: "Just schedule me for the soonest time, I'm in a hurry"
+- [ ] Agent completes request efficiently
+- [ ] Agent does NOT bring up promotions
+- [ ] **Verify**: no promotion mentioned in transcript
+
+---
+
+### FAQ Matching (All Modes Where Configured)
+
+**Prerequisites**: Configure FAQ pairs (e.g., Q: "Do you offer free estimates?" A: "Yes, all our estimates are free with no obligation.").
+
+#### P1 | CROSS-FAQ-1: Caller asks a configured FAQ question
+- [ ] Caller: "Do you charge for estimates?"
+- [ ] Agent answers from configured FAQ, does NOT say "I'll check with the office"
+- [ ] **Verify**: answer matches configured FAQ content
+
+#### P1 | CROSS-FAQ-2: Caller asks question NOT in FAQ
+- [ ] "Do you offer 24-hour emergency service?" (not in FAQ)
+- [ ] Agent does NOT hallucinate an answer
+- [ ] Defers: "I'd want to double-check that for you — let me have someone follow up"
+
+---
+
+### Escalation — Angry/Irate Caller (All Modes)
+
+#### P1 | CROSS-ESCALATION-1: Angry caller demands to speak to someone
+- [ ] Caller is visibly frustrated: "This is ridiculous, I need to talk to a real person NOW"
+- [ ] Agent immediately offers transfer (Path B) or callback (Path A)
+- [ ] Agent does NOT continue intake flow or try to de-escalate extensively
+- [ ] **Verify**: agent prioritizes escalation over data collection
+
+#### P1 | CROSS-ESCALATION-2: Caller demands discount/exception
+- [ ] "I want a discount" or "You need to make this right"
+- [ ] Agent defers to human: "I'll have someone from the team follow up to discuss that with you"
+- [ ] Agent does NOT promise a discount or make up a resolution
+
+---
+
+### Commercial vs Residential Triage (HCP / Jobber)
+
+#### P1 | FS-TRIAGE-1: Agent asks commercial or residential when unclear
+- [ ] Caller: "I need some plumbing work done at my property"
+- [ ] Agent asks: "Is this for a residential home or a commercial property?"
+- [ ] Answer included in service request description
+- [ ] **Verify in platform**: description mentions "commercial" or "residential"
+
+---
+
+### Service Detail Triage — Probing for Vague Requests (All Modes)
+
+#### P1 | CROSS-TRIAGE-1: Vague request triggers follow-up
+- [ ] Caller: "I need some plumbing help"
+- [ ] Agent probes: "Can you tell me a bit more about what's going on?"
+- [ ] Caller provides detail → agent proceeds
+- [ ] **Verify**: agent asked 1-2 follow-up questions before intake
+
+#### P1 | CROSS-TRIAGE-2: Detailed request skips probing
+- [ ] Caller: "My kitchen faucet is leaking from the base and there's water pooling under the cabinet"
+- [ ] Agent does NOT ask "what's happening?" — moves directly to intake
+- [ ] **Verify**: no redundant probing questions
+
+---
+
+### Business Hours — Real-Time Query (All Modes)
+
+#### P1 | CROSS-HOURS-1: "Are you open right now?"
+- [ ] Agent compares injected current time against business hours
+- [ ] Answers correctly: "Yes, we're open until 5 PM today" or "We're currently closed but open again at 8 AM tomorrow"
+- [ ] **Verify**: NO tool call, uses prompt context only
+
+---
+
+### Brands Serviced (All Modes Where Configured)
+
+**Prerequisites**: Configure brands (e.g., "Rheem, Lennox, Carrier, Trane").
+
+#### P1 | CROSS-BRANDS-1: Caller asks about a listed brand
+- [ ] "Do you work on Rheem water heaters?"
+- [ ] Agent confirms: "Yes, we work with Rheem"
+
+#### P1 | CROSS-BRANDS-2: Caller asks about an unlisted brand
+- [ ] "Do you service Noritz tankless heaters?"
+- [ ] Agent does NOT say "we don't service that"
+- [ ] Instead: "We work with many brands. Let me have our team confirm we can help with Noritz"
+
+---
+
+### Policies — Estimate/Diagnostic Fee/Financing (All Modes Where Configured)
+
+#### P1 | CROSS-POLICY-1: "Do you charge for estimates?"
+- [ ] Agent answers from configured estimatePolicyText
+- [ ] **Verify**: matches policy, not hallucinated
+
+#### P1 | CROSS-POLICY-2: "Do you offer financing?"
+- [ ] Agent answers from configured financing info (if present)
+- [ ] If not configured: "Let me have the office follow up with financing details"
+
+---
+
+### Trust & Credentials (All Modes Where Configured)
+
+#### P1 | CROSS-TRUST-1: "Are you licensed and insured?"
+- [ ] Agent answers from configured trust_and_guarantees
+- [ ] **Verify**: references credentials naturally, not a recitation
+
+---
+
+### Path B Specific Scenarios (All Modes)
+
+#### P1 | CROSS-PATHB-1: Path B — transfer offered for "speak to someone"
+- [ ] Path B location, any integration
+- [ ] "Can I talk to someone?" → agent uses transfer-call
+- [ ] **Verify**: transfer tool called, NOT request-callback
+
+#### P1 | CROSS-PATHB-2: Path B — caller prefers callback over transfer
+- [ ] Path B location, any integration
+- [ ] "Just have them call me back" → agent uses request-callback (not transfer)
+- [ ] **Verify**: callback tool called even though transfer is available
+
+---
+
+### Multiple Services in One Call (HCP / Jobber)
+
+#### P1 | FS-MULTI-1: Caller needs two services in one call
+- [ ] "I need a leak repair AND a drain cleaning"
+- [ ] Agent creates ONE service request with combined description
+- [ ] Agent does NOT call fs_create_service_request twice
+- [ ] **Verify in platform**: single request with both services described
+
+---
+
+### County-Based Service Area Matching
+
+#### P1 | CROSS-AREA-1: Caller in city within a listed county
+- [ ] Location has "Santa Cruz County" in service areas (which includes Watsonville, Capitola, Scotts Valley, etc.)
+- [ ] Caller provides address in "Watsonville"
+- [ ] Agent accepts — city is within the expanded county list
+- [ ] **Verify**: agent does NOT reject a valid in-county city
+
+---
+
+### P2 Edge Cases & Guardrails
+
+#### P2 | FS-TIME-1: Caller has no time preference (HCP / Jobber)
+- [ ] "Whenever works" or "Anytime is fine"
+- [ ] Agent passes "No preference - anytime works" as desired_time
+- [ ] **Verify in logs**: desired_time field contains fallback text
+
+#### P2 | FS-GUARD-1: Assessment auto-created — no separate tool call (HCP / Jobber)
+- [ ] Complete new caller flow through fs_create_service_request
+- [ ] **Verify in logs**: NO fs_create_assessment tool call
+- [ ] Assessment ID comes from service request response
+
+#### P2 | FS-GUARD-2: Agent does NOT create customer twice (HCP / Jobber)
+- [ ] After fs_create_customer returns customer_id
+- [ ] Conversation continues with a follow-up that re-enters the flow
+- [ ] Agent reuses existing customer_id — does NOT call fs_create_customer again
+- [ ] **Verify in logs**: only one fs_create_customer call
+
+#### P2 | CROSS-PAY-1: "What forms of payment do you accept?"
+- [ ] Agent answers from Google Place Details payment options
+- [ ] "We accept credit cards and debit cards"
+- [ ] **Verify**: no hallucinated payment methods
+
+#### P2 | CROSS-VALUE-1: "Why should I choose you over [competitor]?"
+- [ ] Agent references value propositions from prompt
+- [ ] Natural, not a sales pitch
+- [ ] Does NOT badmouth the competitor
+
+#### P2 | CROSS-PROPTYPE-1: "Do you work on commercial properties?"
+- [ ] Agent answers based on configured property_types_served
+- [ ] If not configured → "Let me have someone from the team confirm that for you"
+
+#### P2 | CROSS-INTAKE-9: Numeric answers submitted correctly
+- [ ] Custom intake question: "What is the square footage?"
+- [ ] Caller: "about four thousand"
+- [ ] Agent submits "4000" (numeric), not "four thousand"
+- [ ] **Verify in logs**: submit_intake_answers payload has numeric value
+
+#### P2 | CROSS-WARMXFER-1: Warm transfer when enabled
+- [ ] Path B location with warmTransferEnabled=true + org flag on
+- [ ] "Can I speak to someone?" → agent uses warm-transfer tool (not transfer-call)
+- [ ] **Verify**: warm_transfer tool called
+
+#### P2 | GCAL-EMAIL-1: collect_email tool auto-normalizes
+- [ ] GCal location, email required
+- [ ] Agent uses collect_email tool (GetEmailTask)
+- [ ] Handles "john at gmail dot com" → john@gmail.com
+- [ ] Agent then calls submit_intake_answers with normalized email
+
+#### P2 | GCAL-SEC-1: Caller can't cancel someone else's appointment
+- [ ] Returning caller asks to cancel an appointment at a time they don't have one
+- [ ] System returns error (phone number mismatch)
+- [ ] Agent: "I couldn't find an appointment matching that time for this phone number"
+
+#### P2 | FS-DURATION-1: Service-specific duration in availability (HCP)
+- [ ] Service has duration: 60 min
+- [ ] Agent calls fs_check_availability with duration=60
+- [ ] **Verify in logs**: duration parameter passed correctly
+
+#### P2 | FS-DURATION-2: No duration — falls back to default (HCP)
+- [ ] Service has no duration defined
+- [ ] Agent calls fs_check_availability without duration — server uses default
+
+#### P2 | CROSS-GREET-1: Greeting matches time of day
+- [ ] Call at 9 AM → "Good morning"
+- [ ] Call at 2 PM → "Good afternoon"
+- [ ] Call at 7 PM → "Good evening"
+- [ ] **Verify**: no duplicate word ("Good morning, morning Alex")
+
+#### P2 | CROSS-RECORD-1: Recording disclosure in first message
+- [ ] Any mode, any caller type
+- [ ] First message includes recording disclosure (e.g., "This call may be recorded")
+- [ ] **Verify**: present in every call's opening message
+
+---
+
+### EndCallTool — Agent Hang-Up (Test in Each Mode)
+
+The agent should call `EndCallTool` to hang up at the natural end of every conversation. The caller should NOT have to hang up first. Test each trigger across all 4 integration modes.
+
+#### P0 | CROSS-ENDCALL-1: Hang up after booking confirmation (GCal / HCP / Jobber)
+Test once per scheduling mode (GCal, HCP autoSchedule=true, Jobber autoSchedule=true):
+- [ ] Complete a full booking (new or returning caller)
+- [ ] Agent confirms: "Your [appointment/assessment/estimate] is scheduled for [day] at [time] at [address]"
+- [ ] Agent asks: "Is there anything else I can help with?"
+- [ ] Caller: "No, that's it" / "Nope, thanks"
+- [ ] Agent says a natural sign-off: "Great, you're all set. Have a wonderful day!"
+- [ ] **Agent calls EndCallTool** — call ends without caller having to hang up
+- [ ] **Verify in server logs**: `end_call` tool call appears after final agent utterance
+
+#### P0 | CROSS-ENDCALL-2: Hang up after callback request (all 4 modes)
+Test once per mode (No Integration, GCal, HCP, Jobber):
+- [ ] Complete intake → agent creates callback request via `request_callback`
+- [ ] Agent confirms: "I've requested a callback for you. Someone will reach out shortly."
+- [ ] Agent asks if anything else → caller says no
+- [ ] Agent says goodbye → **calls EndCallTool**
+- [ ] **Verify**: call ends cleanly
+
+#### P0 | CROSS-ENDCALL-3: Hang up after service area rejection (all 4 modes)
+Test once per mode:
+- [ ] Provide address outside service area
+- [ ] Agent declines: "I'm sorry, we don't currently service that area"
+- [ ] Agent asks if there's anything else → caller says no
+- [ ] Agent says goodbye → **calls EndCallTool**
+- [ ] **Verify**: call ends cleanly
+
+#### P1 | CROSS-ENDCALL-4: Hang up after autoSchedule=false confirmation (HCP / Jobber)
+- [ ] autoScheduleAssessment=false
+- [ ] Complete new caller flow → agent confirms: "Our team will review and reach out to schedule"
+- [ ] Agent asks if anything else → caller says no
+- [ ] Agent says goodbye → **calls EndCallTool**
+
+#### P1 | CROSS-ENDCALL-5: Hang up after cancel confirmation (GCal / HCP / Jobber)
+- [ ] Caller cancels an appointment/assessment/estimate
+- [ ] Agent confirms cancellation
+- [ ] Agent asks if anything else → caller says no
+- [ ] Agent says goodbye → **calls EndCallTool**
+
+#### P1 | CROSS-ENDCALL-6: Hang up after business info only (all 4 modes)
+- [ ] Caller only asks about hours/services, does NOT request service
+- [ ] Agent answers questions
+- [ ] Caller: "That's all I needed, thanks"
+- [ ] Agent says goodbye → **calls EndCallTool**
+
+#### P1 | CROSS-ENDCALL-7: Hang up after safety hazard instructions (all 4 modes)
+- [ ] Trigger safety hazard ("I smell gas")
+- [ ] Agent gives safety instructions
+- [ ] Caller: "OK, I'm going outside now"
+- [ ] Agent: "Stay safe. Call 911 if needed, and call us back once everything is resolved."
+- [ ] Agent says goodbye → **calls EndCallTool**
+
+#### P2 | CROSS-ENDCALL-8: Agent does NOT hang up prematurely
+- [ ] Complete a booking, agent asks "anything else?"
+- [ ] Caller: "Actually, yes — I have another question about [X]"
+- [ ] Agent answers follow-up question
+- [ ] Only hangs up after caller confirms they're done
+
+---
+
+### Email Collection (Test in Each Mode)
+
+Email collection behavior differs by integration. The agent should ask the caller to **spell out their email** for accuracy.
+
+#### P0 | CROSS-EMAIL-1: No Integration — email during intake
+- [ ] New caller, No Integration location with email in intake questions
+- [ ] Agent collects name → address → reaches email step
+- [ ] Agent asks for email: "Could I get your email address?"
+- [ ] Caller provides email → agent asks to spell it for confirmation
+- [ ] Agent calls `submit_intake_answers` with email included
+- [ ] **Verify**: Caller record has email saved
+
+#### P0 | CROSS-EMAIL-2: GCal — email required for appointment reminders
+- [ ] New caller, GCal location
+- [ ] Agent collects name, address, service → reaches email step
+- [ ] Agent asks for email (REQUIRED for GCal — needed for appointment reminders)
+- [ ] Agent asks caller to spell it
+- [ ] Agent calls `submit_intake_answers` with email
+- [ ] Agent proceeds to booking
+- [ ] **Verify**: Caller record has email, calendar event created
+
+#### P1 | CROSS-EMAIL-3: GCal — caller declines to give email
+- [ ] New caller, GCal location
+- [ ] Agent asks for email → caller: "I'd rather not give that"
+- [ ] Agent should explain email is needed for appointment reminders/confirmation
+- [ ] If caller still declines → agent proceeds without email (does not block the call)
+- [ ] **Verify**: booking still completes
+
+#### P0 | CROSS-EMAIL-4: HCP — email during customer creation
+- [ ] New caller, HCP location
+- [ ] Agent collects name → asks for email before or after address
+- [ ] Agent asks caller to spell it
+- [ ] Agent calls `fs_create_customer` with `email` parameter
+- [ ] **Verify in HCP**: customer record has email
+
+#### P0 | CROSS-EMAIL-5: Jobber — email during customer creation
+- [ ] New caller, Jobber location
+- [ ] Same flow as HCP — email passed to `fs_create_customer`
+- [ ] **Verify in Jobber**: client record has email
+
+#### P1 | CROSS-EMAIL-6: Email optional — caller declines (HCP / Jobber)
+- [ ] New caller on HCP or Jobber
+- [ ] Agent asks for email → caller: "No thanks"
+- [ ] Agent proceeds without email (email is optional for FS integrations)
+- [ ] Customer created successfully without email
+- [ ] **Verify**: no error, customer exists in platform
+
+#### P1 | CROSS-EMAIL-7: Returning caller — email already on file (all modes)
+- [ ] Call from known number with email already saved
+- [ ] Agent greets by name
+- [ ] Agent does NOT re-ask for email
+- [ ] **Verify**: no redundant email collection
+
+#### P2 | CROSS-EMAIL-8: Returning caller — email missing, agent collects it
+- [ ] Call from known number WITHOUT email on record
+- [ ] For FS integrations: agent may ask for email during the flow
+- [ ] For GCal: agent should ask for email (needed for reminders)
+- [ ] **Verify**: email saved on subsequent calls
+
+---
+
+### Custom Intake Questions (Test in Each Mode)
+
+Custom intake questions are configured per-location (e.g., "How did you hear about us?", "Do you have pets?", "What brand is your equipment?"). They are injected into the system prompt and the agent asks them during intake.
+
+**Prerequisites**: Configure 2-3 custom intake questions on the test location for each mode:
+- A **freeform text** question (e.g., "How did you hear about us?")
+- A **yes/no** question (e.g., "Do you have pets at the property?")
+- A **required** question vs an **optional** question
+
+#### P0 | CROSS-INTAKE-1: No Integration — custom questions asked and saved
+- [ ] New caller, No Integration location with custom intake questions configured
+- [ ] Agent follows intake flow: name → address → email → custom questions
+- [ ] Agent asks each configured question in order
+- [ ] Caller answers each question
+- [ ] Agent calls `submit_intake_answers` — answers included in payload
+- [ ] **Verify in server logs**: `submit_intake_answers` payload contains question labels and answer text
+- [ ] **Verify in dashboard**: Caller record shows intake answers
+
+#### P0 | CROSS-INTAKE-2: GCal — custom questions asked and saved
+- [ ] New caller, GCal location with custom intake questions configured
+- [ ] Agent follows intake flow including custom questions
+- [ ] Agent calls `submit_intake_answers` with all answers
+- [ ] Agent proceeds to booking
+- [ ] **Verify**: intake answers saved, calendar event created
+
+#### P0 | CROSS-INTAKE-3: HCP — custom questions passed via intake_answers
+- [ ] New caller, HCP location with custom intake questions configured
+- [ ] Agent follows new-caller workflow: service → name → customer → address → property → custom questions
+- [ ] Agent asks each configured intake question
+- [ ] Agent calls `fs_create_service_request` with `intake_answers` parameter containing question/answer pairs
+- [ ] **Verify in HCP**: lead note contains intake answers (HCP stores them in the lead note text)
+- [ ] **Verify in server logs**: `create-service-request` request body has `intakeAnswers` field
+
+#### P0 | CROSS-INTAKE-4: Jobber — custom questions passed via intake_answers
+- [ ] New caller, Jobber location with custom intake questions configured
+- [ ] Same flow as HCP — agent asks custom questions
+- [ ] Agent calls `fs_create_service_request` with `intake_answers` parameter
+- [ ] **Verify in Jobber**: request has "Intake Answers" section in Request Details form
+- [ ] **Verify in server logs**: `create-service-request` request body has `intakeAnswers` field
+
+#### P1 | CROSS-INTAKE-5: Returning caller — skip already-known answers
+- [ ] Call from known number on any integration
+- [ ] If the custom question's answer can be inferred from existing data (e.g., name already on file), agent should skip it
+- [ ] Agent only asks questions that haven't been answered yet
+- [ ] **Verify**: agent does not redundantly ask for name/address that's already pre-loaded
+
+#### P1 | CROSS-INTAKE-6: Caller says "I don't know" / "skip" to a custom question
+- [ ] New caller on any integration with required + optional custom questions
+- [ ] Caller says "I don't know" or "skip" for one question
+- [ ] Agent acknowledges and moves on (does NOT loop or insist)
+- [ ] Answer recorded as skipped/blank
+- [ ] **Verify**: remaining questions still asked, intake completes
+
+#### P1 | CROSS-INTAKE-7: HCP/Jobber — fs_submit_lead includes intake_answers
+- [ ] New caller on HCP or Jobber
+- [ ] If agent uses `fs_submit_lead` (shortcut tool) instead of step-by-step tools
+- [ ] Custom intake answers should still be passed via `intake_answers` parameter
+- [ ] **Verify in server logs**: `submit-lead` request body has `intakeAnswers` field
+
+#### P2 | CROSS-INTAKE-8: No custom questions configured — agent skips intake section
+- [ ] Location with zero custom intake questions configured
+- [ ] Agent still collects standard info (name, address, email) but does NOT ask extra questions
+- [ ] No "Intake Answers" section in service request
+- [ ] Flow completes normally
+
+---
+
 ## Pre-Test Setup Checklist
 
 ### Environment
@@ -779,8 +1241,6 @@ Test once per mode (No Integration, GCal, HCP, Jobber):
 - [ ] Location with Google Calendar connected
 - [ ] CallerAddress records for returning callers
 - [ ] Existing calendar events (for list/reschedule/cancel tests)
-- [ ] arrivalWindowMinutes set to 30 (for arrival window tests)
-- [ ] A second location or config with arrivalWindowMinutes=0 (for exact time comparison)
 - [ ] defaultAppointmentMinutes configured (e.g., 60)
 - [ ] bufferMinutes configured (e.g., 15)
 - [ ] Business hours in Google Place Details
@@ -826,7 +1286,6 @@ Test once per mode (No Integration, GCal, HCP, Jobber):
 - [ ] Scheduling matches autoScheduleAssessment toggle
 - [ ] Service area rejection works for out-of-area addresses
 - [ ] Business hours enforced (no tool call for out-of-hours requests)
-- [ ] Arrival window communicated as range (when arrivalWindowMinutes > 0)
 - [ ] Prompt split correct (new caller = new instructions, returning = returning instructions)
 - [ ] Unhandled intents gracefully deferred (not ignored or errored)
 - [ ] Safety hazards trigger immediate stop + safety instructions
@@ -843,17 +1302,13 @@ Test once per mode (No Integration, GCal, HCP, Jobber):
 [checkAvailability] duration=Xmin buffer=Ymin items=X/Y
 
 # GCal event creation
-[google-calendar-create-event] Using total block X minutes (Y appointment + Z arrival window)
-
-# GCal arrival window
-[google-calendar-create-event] Using total block 90 minutes (60 appointment + 30 arrival window)
+[google-calendar-create-event] Created event on [date] from [time] to [time]
 ```
 
 ### GCal-Specific Checks
 - [ ] Event `extendedProperties.shared` has `source: callsaver`
-- [ ] Event description includes arrival window info (if arrivalWindowMinutes > 0)
-- [ ] Event duration = defaultAppointmentMinutes + arrivalWindowMinutes
-- [ ] Agent communicated time as range ("between X and Y") when arrival window active
+- [ ] Event duration = defaultAppointmentMinutes
+- [ ] Caller phone in `extendedProperties.shared.callerPhoneNumber`
 
 ---
 
@@ -893,11 +1348,6 @@ Copy this table and fill in as you test. Use: **Pass** / **Fail** / **Partial** 
 | GCAL-RC-3 | List appointments | P0 | | | |
 | GCAL-RC-4 | Reschedule | P0 | | | |
 | GCAL-RC-5 | Cancel | P0 | | | |
-| GCAL-AW-1 | Arrival window — range | P0 | | | |
-| GCAL-AW-2 | Arrival window — block size | P1 | | | |
-| GCAL-AW-3 | Arrival window — description | P1 | | | |
-| GCAL-AW-4 | Arrival window — availability | P1 | | | |
-| GCAL-AW-5 | No window — exact times | P1 | | | |
 | GCAL-BH-1 | Hours question (no tool) | P1 | | | |
 | GCAL-BH-2 | Buffer time | P1 | | | |
 | GCAL-BH-3 | Natural availability | P2 | | | |
@@ -906,6 +1356,11 @@ Copy this table and fill in as you test. Use: **Pass** / **Fail** / **Partial** 
 | GCAL-UI-1 | Billing | P1 | | | |
 | GCAL-UI-2 | Leave a message | P1 | | | |
 | GCAL-UI-3 | Safety hazard | P0 | | | |
+| GCAL-NC-6 | Next available appointment | P1 | | | |
+| GCAL-RC-6 | Change service type on event | P1 | | | |
+| GCAL-RC-7 | Add service to event | P1 | | | |
+| GCAL-EMAIL-1 | collect_email normalization | P2 | | | |
+| GCAL-SEC-1 | Can't cancel others' events | P2 | | | |
 
 ### Housecall Pro
 | ID | Scenario | Priority | Result | Notes | Date |
@@ -973,6 +1428,67 @@ Copy this table and fill in as you test. Use: **Pass** / **Fail** / **Partial** 
 | SPLIT-2 | Returning caller workflow | P0 | | | |
 | SPLIT-3 | GCal returning pre-loaded | P1 | | | |
 | SPLIT-4 | GCal new caller intake | P1 | | | |
+| CROSS-ENDCALL-1 | Hang up after booking | P0 | | | |
+| CROSS-ENDCALL-2 | Hang up after callback | P0 | | | |
+| CROSS-ENDCALL-3 | Hang up after area reject | P0 | | | |
+| CROSS-ENDCALL-4 | Hang up after autoSched=false | P1 | | | |
+| CROSS-ENDCALL-5 | Hang up after cancel | P1 | | | |
+| CROSS-ENDCALL-6 | Hang up after info only | P1 | | | |
+| CROSS-ENDCALL-7 | Hang up after safety | P1 | | | |
+| CROSS-ENDCALL-8 | No premature hang up | P2 | | | |
+| CROSS-EMAIL-1 | No Integration — email | P0 | | | |
+| CROSS-EMAIL-2 | GCal — email required | P0 | | | |
+| CROSS-EMAIL-3 | GCal — email declined | P1 | | | |
+| CROSS-EMAIL-4 | HCP — email on create | P0 | | | |
+| CROSS-EMAIL-5 | Jobber — email on create | P0 | | | |
+| CROSS-EMAIL-6 | Email optional — declined | P1 | | | |
+| CROSS-EMAIL-7 | Returning — email on file | P1 | | | |
+| CROSS-EMAIL-8 | Returning — email missing | P2 | | | |
+| CROSS-INTAKE-1 | No Integration — custom Q | P0 | | | |
+| CROSS-INTAKE-2 | GCal — custom Q | P0 | | | |
+| CROSS-INTAKE-3 | HCP — intake_answers | P0 | | | |
+| CROSS-INTAKE-4 | Jobber — intake_answers | P0 | | | |
+| CROSS-INTAKE-5 | Returning — skip known | P1 | | | |
+| CROSS-INTAKE-6 | Skip / don't know | P1 | | | |
+| CROSS-INTAKE-7 | fs_submit_lead + intake | P1 | | | |
+| CROSS-INTAKE-8 | No custom Q configured | P2 | | | |
+| CROSS-INTAKE-9 | Numeric answers format | P2 | | | |
+| CROSS-IDENTITY-1 | "Are you a real person?" | P1 | | | |
+| CROSS-IDENTITY-2 | No unprompted AI disclosure | P1 | | | |
+| CROSS-IDENTITY-3 | "I'm not [Name]" | P1 | | | |
+| CROSS-CONTEXT-1 | GCal returning — recent activity | P1 | | | |
+| CROSS-CONTEXT-2 | FS returning — profile summary | P1 | | | |
+| CROSS-PROMO-1 | Caller asks about deals | P1 | | | |
+| CROSS-PROMO-2 | Promo after booking | P1 | | | |
+| CROSS-PROMO-3 | No promo when rushed | P1 | | | |
+| CROSS-FAQ-1 | Configured FAQ answered | P1 | | | |
+| CROSS-FAQ-2 | Non-FAQ question deferred | P1 | | | |
+| CROSS-ESCALATION-1 | Angry caller → escalate | P1 | | | |
+| CROSS-ESCALATION-2 | Demands discount → defer | P1 | | | |
+| FS-TRIAGE-1 | Commercial vs residential | P1 | | | |
+| CROSS-TRIAGE-1 | Vague request → probe | P1 | | | |
+| CROSS-TRIAGE-2 | Detailed request → no probe | P1 | | | |
+| CROSS-HOURS-1 | "Are you open right now?" | P1 | | | |
+| CROSS-BRANDS-1 | Listed brand confirmed | P1 | | | |
+| CROSS-BRANDS-2 | Unlisted brand → defer | P1 | | | |
+| CROSS-POLICY-1 | Estimate policy | P1 | | | |
+| CROSS-POLICY-2 | Financing question | P1 | | | |
+| CROSS-TRUST-1 | Licensed and insured | P1 | | | |
+| CROSS-PATHB-1 | Path B transfer | P1 | | | |
+| CROSS-PATHB-2 | Path B prefers callback | P1 | | | |
+| FS-MULTI-1 | Two services one request | P1 | | | |
+| CROSS-AREA-1 | County-based city match | P1 | | | |
+| FS-TIME-1 | No time preference | P2 | | | |
+| FS-GUARD-1 | No separate create_assessment | P2 | | | |
+| FS-GUARD-2 | No duplicate customer | P2 | | | |
+| CROSS-PAY-1 | Payment methods | P2 | | | |
+| CROSS-VALUE-1 | Why choose us | P2 | | | |
+| CROSS-PROPTYPE-1 | Commercial properties | P2 | | | |
+| CROSS-WARMXFER-1 | Warm transfer | P2 | | | |
+| FS-DURATION-1 | Service duration in avail | P2 | | | |
+| FS-DURATION-2 | Default duration fallback | P2 | | | |
+| CROSS-GREET-1 | Time-of-day greeting | P2 | | | |
+| CROSS-RECORD-1 | Recording disclosure | P2 | | | |
 
 ---
 
@@ -980,6 +1496,7 @@ Copy this table and fill in as you test. Use: **Pass** / **Fail** / **Partial** 
 
 All P0 scenarios in one list — these must pass before launch:
 
+**Core Happy Paths**
 1. **NONE-NC-1** — No Integration: business info questions
 2. **NONE-NC-2** — No Integration: full intake + callback
 3. **NONE-NC-3** — No Integration: intake + transfer
@@ -989,8 +1506,7 @@ All P0 scenarios in one list — these must pass before launch:
 7. **GCAL-RC-3** — GCal: list appointments
 8. **GCAL-RC-4** — GCal: reschedule
 9. **GCAL-RC-5** — GCal: cancel
-10. **GCAL-AW-1** — GCal: arrival window range communication
-11. **GCAL-UI-3** — GCal: safety hazard
+10. **GCAL-UI-3** — GCal: safety hazard
 12. **HCP-NC-1** — HCP: full happy path
 13. **HCP-NC-2** — HCP: autoSchedule=false
 14. **HCP-RC-1** — HCP: returning caller single property
@@ -1006,3 +1522,20 @@ All P0 scenarios in one list — these must pass before launch:
 24. **SPLIT-1** — Prompt split: new caller workflow
 25. **SPLIT-2** — Prompt split: returning caller workflow
 26. **CROSS-SAFETY-1** — Safety hazard across all modes
+
+**EndCallTool — Agent Hang-Up**
+27. **CROSS-ENDCALL-1** — Hang up after booking (GCal / HCP / Jobber)
+28. **CROSS-ENDCALL-2** — Hang up after callback (all 4 modes)
+29. **CROSS-ENDCALL-3** — Hang up after service area rejection (all 4 modes)
+
+**Email Collection**
+30. **CROSS-EMAIL-1** — No Integration: email during intake
+31. **CROSS-EMAIL-2** — GCal: email required for reminders
+32. **CROSS-EMAIL-4** — HCP: email during customer creation
+33. **CROSS-EMAIL-5** — Jobber: email during customer creation
+
+**Custom Intake Questions**
+34. **CROSS-INTAKE-1** — No Integration: custom questions asked and saved
+35. **CROSS-INTAKE-2** — GCal: custom questions asked and saved
+36. **CROSS-INTAKE-3** — HCP: custom questions via intake_answers
+37. **CROSS-INTAKE-4** — Jobber: custom questions via intake_answers
